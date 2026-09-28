@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Document RAG Admin Panel</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+        background: #f5f5f5;
+      }
+
+      h1 {
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: white;
+        padding: 25px;
+        margin-bottom: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      input[type="file"],
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        box-sizing: border-box;
+      }
+
+      button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #222;
+        color: white;
+      }
+
+      button:hover {
+        opacity: 0.85;
+      }
+
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f0f0f0;
+        border-radius: 6px;
+        white-space: pre-wrap;
+      }
+
+      .source {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #555;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Document RAG Admin Panel</h1>
+
+    <p class="subtitle">
+      Upload documents, index them in Pinecone, and ask questions using Gemini.
+    </p>
+
+    <!-- Upload Section -->
+
+    <div class="card">
+      <h2>Upload Documents</h2>
+
+      <form id="uploadForm">
+        <input
+          type="file"
+          id="files"
+          name="files"
+          accept=".pdf"
+          multiple
+          required
+        />
+
+        <button type="submit">Upload & Index</button>
+      </form>
+
+      <div id="uploadResult" class="result" style="display: none"></div>
+    </div>
+
+    <!-- Question Section -->
+
+    <div class="card">
+      <h2>Ask a Question</h2>
+
+      <form id="questionForm">
+        <input
+          type="text"
+          id="question"
+          placeholder="Ask something about the uploaded documents..."
+          required
+        />
+
+        <button type="submit">Ask</button>
+      </form>
+
+      <div id="answer" class="result" style="display: none"></div>
+    </div>
+
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const files = document.getElementById("files").files;
+
+          const formData = new FormData();
+
+          for (const file of files) {
+            formData.append("files", file);
+          }
+
+          const response = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          const result = document.getElementById("uploadResult");
+
+          result.style.display = "block";
+
+          result.textContent = data.results
+            .map((item) => `${item.filename}: ${item.message}`)
+            .join("\n");
+        });
+
+      document
+        .getElementById("questionForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const question = document.getElementById("question").value;
+
+          const response = await fetch(
+            `/ask?question=${encodeURIComponent(question)}`,
+            {
+              method: "POST",
+            },
+          );
+
+          const data = await response.json();
+
+          const answer = document.getElementById("answer");
+
+          answer.style.display = "block";
+
+          let output = data.answer;
+
+          if (data.sources.length > 0) {
+            output += "\n\nSources:\n";
+
+            data.sources.forEach((source) => {
+              output +=
+                `${source.document} ` +
+                `(chunk ${source.chunk}, ` +
+                `score ${source.score})\n`;
+            });
+          }
+
+          answer.textContent = output;
+        });
+    </script>
+  </body>
+</html>
