@@ -67,6 +67,68 @@
         font-size: 14px;
         color: #555;
       }
+
+      .model-section {
+        border-top: 1px solid #ddd;
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+
+      .model-section:first-child {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+      }
+
+      .model-section h3 {
+        margin-bottom: 8px;
+      }
+
+      .model-info {
+        background: #f7f7f7;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 12px 0;
+      }
+
+      .model-info p {
+        margin: 6px 0;
+      }
+
+      .model-select {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        box-sizing: border-box;
+      }
+
+      .model-warning {
+        background: #fff3cd;
+        color: #664d03;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+
+      .model-success {
+        background: #d1e7dd;
+        color: #0f5132;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+
+      .model-error {
+        background: #f8d7da;
+        color: #842029;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+
+      .switch-button {
+        margin-top: 5px;
+      }
     </style>
   </head>
 
@@ -96,6 +158,22 @@
       </form>
 
       <div id="uploadResult" class="result" style="display: none"></div>
+    </div>
+
+    <!-- Model Management Section -->
+
+    <div class="card">
+      <h2>Model Management</h2>
+
+      <p class="subtitle">
+        Manage the models used by the RAG application.
+      </p>
+
+      <div id="modelManagement">
+        Loading models...
+      </div>
+
+      <div id="lifecycleWarnings"></div>
     </div>
 
     <!-- Question Section -->
@@ -182,6 +260,240 @@
 
           answer.textContent = output;
         });
+
+      async function loadModels() {
+        try {
+          const response = await fetch("/models");
+
+          if (!response.ok) {
+            throw new Error("Failed to load models.");
+          }
+
+          const data = await response.json();
+
+          const container = document.getElementById("modelManagement");
+
+          container.innerHTML = "";
+
+          const roles = [
+            {
+              key: "cheap_fast",
+              title: "Cheap / Fast Model",
+              description: "Routing, OCR and basic tasks",
+            },
+            {
+              key: "powerful",
+              title: "Powerful Model",
+              description:
+                "Final answers, complex reasoning and hard accounting questions",
+            },
+          ];
+
+          roles.forEach((role) => {
+            const activeModel = data.active_roles[role.key];
+
+            const availableModels = Object.entries(data.models).filter(
+              ([modelId, model]) =>
+                model.role === role.key &&
+                model.status === "active"
+            );
+
+            const section = document.createElement("div");
+
+            section.className = "model-section";
+
+            const options = availableModels
+              .map(([modelId, model]) => {
+                return `
+                  <option value="${modelId}" ${
+                    modelId === activeModel ? "selected" : ""
+                  }>
+                    ${model.display_name}
+                  </option>
+                `;
+              })
+              .join("");
+
+            const activeModelData = data.models[activeModel];
+
+            section.innerHTML = `
+              <h3>${role.title}</h3>
+
+              <p>${role.description}</p>
+
+              <div class="model-info">
+                <p>
+                  <strong>Active Model:</strong>
+                  ${activeModelData.display_name}
+                </p>
+
+                <p>
+                  <strong>Status:</strong>
+                  ${activeModelData.status}
+                </p>
+
+                <p>
+                  <strong>Free Tier:</strong>
+                  ${activeModelData.free_tier ? "Available" : "Not available"}
+                </p>
+
+                <p>
+                  <strong>Input:</strong>
+                  $${activeModelData.pricing.input_per_1m_tokens ?? "N/A"}
+                  / 1M tokens
+                </p>
+
+                <p>
+                  <strong>Output:</strong>
+                  $${activeModelData.pricing.output_per_1m_tokens ?? "N/A"}
+                  / 1M tokens
+                </p>
+              </div>
+
+              <label>
+                <strong>Select Model</strong>
+              </label>
+
+              <select
+                class="model-select"
+                id="select-${role.key}"
+              >
+                ${options}
+              </select>
+
+              <button
+                class="switch-button"
+                onclick="switchModel('${role.key}')"
+              >
+                Switch Model
+              </button>
+
+              <div id="result-${role.key}"></div>
+            `;
+
+            container.appendChild(section);
+          });
+
+        } catch (error) {
+          document.getElementById("modelManagement").innerHTML =
+            `<div class="model-error">
+              Failed to load model information: ${error.message}
+            </div>`;
+        }
+      }
+
+
+      async function switchModel(role) {
+        const select = document.getElementById(`select-${role}`);
+
+        const modelId = select.value;
+
+        const result = document.getElementById(`result-${role}`);
+
+        result.innerHTML = "Switching model...";
+
+        try {
+          const response = await fetch("/models/switch", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              role: role,
+              model_id: modelId,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            result.innerHTML = `
+              <div class="model-success">
+                ${data.message}
+              </div>
+            `;
+
+            await loadModels();
+            await loadLifecycleWarnings();
+
+          } else {
+            result.innerHTML = `
+              <div class="model-error">
+                ${data.message}
+              </div>
+            `;
+          }
+
+        } catch (error) {
+          result.innerHTML = `
+            <div class="model-error">
+              Failed to switch model: ${error.message}
+            </div>
+          `;
+        }
+      }
+
+
+      async function loadLifecycleWarnings() {
+        try {
+          const response = await fetch("/models/lifecycle");
+
+          const data = await response.json();
+
+          const container =
+            document.getElementById("lifecycleWarnings");
+
+          container.innerHTML = "";
+
+          if (data.warnings.length === 0) {
+            return;
+          }
+
+          data.warnings.forEach((warning) => {
+
+            const warningElement =
+              document.createElement("div");
+
+            warningElement.className = "model-warning";
+
+            warningElement.innerHTML = `
+              <strong>⚠ Model Lifecycle Warning</strong>
+
+              <p>
+                <strong>Model:</strong>
+                ${warning.model}
+              </p>
+
+              <p>
+                <strong>Status:</strong>
+                ${warning.status}
+              </p>
+
+              <p>
+                <strong>Recommended Replacement:</strong>
+                ${warning.replacement || "Not specified"}
+              </p>
+
+              <p>
+                <strong>Shutdown Date:</strong>
+                ${warning.shutdown_date || "Not specified"}
+              </p>
+            `;
+
+            container.appendChild(warningElement);
+          });
+
+        } catch (error) {
+          console.error(
+            "Failed to load lifecycle warnings:",
+            error
+          );
+        }
+      }
+
+
+      loadModels();
+      loadLifecycleWarnings();
     </script>
   </body>
 </html>

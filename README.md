@@ -139,3 +139,93 @@ The Acme X500 printer has a two-year limited warranty from the date of purchase.
 ## Notes
 
 API keys are stored in environment variables and should never be committed to GitHub.
+
+## Task 2 — Model Lifecycle Management
+
+Task 2 extends the original RAG POC with a model management layer.
+
+### Architecture
+
+User/Admin Panel
+        |
+        v
+FastAPI
+        |
+        +-------------------+
+        |                   |
+        v                   v
+    RAG Service       Model Manager
+        |                   |
+        v                   v
+    Pinecone          Model Registry
+                            |
+                    +-------+-------+
+                    |               |
+                    v               v
+               Primary Model    Fallback Model
+
+### Model Roles
+
+#### Cheap / Fast Model
+
+Used for:
+
+- Routing
+- OCR
+- Basic tasks
+- Lightweight processing
+
+#### Powerful Model
+
+Used for:
+
+- Final answer generation
+- Complex reasoning
+- Hard accounting questions
+
+### Model Registry
+
+The model registry stores:
+
+- Model ID
+- Display name
+- Role
+- Capabilities
+- Lifecycle status
+- Pricing metadata
+- Free-tier information
+- Recommended replacement
+- Shutdown date
+- Fallback models
+
+### Model Switching
+
+Administrators can switch the active model from the admin panel without changing application code.
+
+### Fallback
+
+If the primary model encounters a fallback-safe failure such as temporary unavailability or rate limiting, the Model Manager attempts the configured fallback model.
+
+### Lifecycle Management
+
+Deprecated and shutdown models cannot be selected as active models.
+
+The admin panel can display:
+
+- Lifecycle status
+- Recommended replacement
+- Shutdown date
+- Pricing information
+
+### Availability
+
+The application exposes model availability information through:
+
+`GET /models/availability`
+
+### Model Management APIs
+
+- `GET /models`
+- `POST /models/switch`
+- `GET /models/lifecycle`
+- `GET /models/availability`

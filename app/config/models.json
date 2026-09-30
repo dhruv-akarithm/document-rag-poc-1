@@ -1,0 +1,105 @@
+{
+  "models": {
+    "gemini-3.1-flash-lite": {
+      "display_name": "Gemini 3.1 Flash-Lite",
+      "role": "cheap_fast",
+      "status": "active",
+      "capabilities": [
+        "routing",
+        "ocr",
+        "basic_tasks"
+      ],
+      "free_tier": true,
+      "pricing": {
+        "currency": "USD",
+        "input_per_1m_tokens": 0.25,
+        "output_per_1m_tokens": 1.5
+      },
+      "replacement": null,
+      "shutdown_date": null
+    },
+    "gemini-3.5-flash-lite": {
+      "display_name": "Gemini 3.5 Flash-Lite",
+      "role": "cheap_fast",
+      "status": "active",
+      "capabilities": [
+        "routing",
+        "ocr",
+        "basic_tasks"
+      ],
+      "free_tier": true,
+      "pricing": {
+        "currency": "USD",
+        "input_per_1m_tokens": 0.3,
+        "output_per_1m_tokens": 2.5
+      },
+      "replacement": null,
+      "shutdown_date": null
+    },
+    "gemini-3.8-flash": {
+      "display_name": "Gemini 3.8 Flash",
+      "role": "powerful",
+      "status": "active",
+      "capabilities": [
+        "final_answer",
+        "complex_reasoning",
+        "hard_accounting_questions"
+      ],
+      "free_tier": true,
+      "pricing": {
+        "currency": "USD",
+        "input_per_1m_tokens": 0.75,
+        "output_per_1m_tokens": 3.75
+      },
+      "replacement": null,
+      "shutdown_date": null
+    },
+    "gemini-3.7-flash": {
+      "display_name": "Gemini 3.7 Flash",
+      "role": "powerful",
+      "status": "active",
+      "capabilities": [
+        "final_answer",
+        "complex_reasoning",
+        "hard_accounting_questions"
+      ],
+      "free_tier": true,
+      "pricing": {
+        "currency": "USD",
+        "input_per_1m_tokens": 0.75,
+        "output_per_1m_tokens": 3.75
+      },
+      "replacement": null,
+      "shutdown_date": null
+    },
+    "demo-deprecated-model": {
+      "display_name": "Demo Deprecated Model",
+      "role": "powerful",
+      "status": "deprecated",
+      "capabilities": [
+        "final_answer",
+        "complex_reasoning"
+      ],
+      "free_tier": false,
+      "pricing": {
+        "currency": "USD",
+        "input_per_1m_tokens": null,
+        "output_per_1m_tokens": null
+      },
+      "replacement": "gemini-3.8-flash",
+      "shutdown_date": "2026-12-31"
+    }
+  },
+  "active_roles": {
+    "cheap_fast": "gemini-3.5-flash-lite",
+    "powerful": "gemini-3.8-flash"
+  },
+  "fallback_roles": {
+    "cheap_fast": [
+      "gemini-3.5-flash-lite"
+    ],
+    "powerful": [
+      "gemini-3.7-flash"
+    ]
+  }
+}
